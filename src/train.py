@@ -138,7 +138,7 @@ if __name__ == '__main__':
 
     early_stop_callback = EarlyStopping(
         monitor='val_loss',
-        patience=5,
+        patience=10,
         verbose=True,
         mode='min')
         
@@ -151,6 +151,7 @@ if __name__ == '__main__':
     # Training
     trainer = pl.Trainer(max_epochs=EPOCHS,
                         gpus = GPUS,
+                        auto_lr_find=True,
                         progress_bar_refresh_rate=20,
                         logger=wandb_logger,
                         callbacks=[early_stop_callback,

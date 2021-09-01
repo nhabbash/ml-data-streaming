@@ -5,7 +5,7 @@ import torchvision.models as models
 import pytorch_lightning as pl
 
 class ResNet18(pl.LightningModule):
-    def __init__(self, input_shape, num_classes, fine_tune=False, learning_rate=1e-3):
+    def __init__(self, input_shape, num_classes, learning_rate, fine_tune=False):
         super().__init__()
         
         # log hyperparameters
@@ -18,8 +18,8 @@ class ResNet18(pl.LightningModule):
         self.accuracy = torchmetrics.Accuracy()
         self.loss = nn.CrossEntropyLoss()
         
-        self.quant = torch.quantization.QuantStub()
-        self.dequant = torch.quantization.DeQuantStub()
+        #self.quant = torch.quantization.QuantStub()
+        #self.dequant = torch.quantization.DeQuantStub()
 
         self.feature_extractor = models.resnet18(pretrained=True)
         self.feature_extractor.conv1 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=True)
@@ -34,7 +34,6 @@ class ResNet18(pl.LightningModule):
         self.classifier = nn.Linear(in_features, num_classes)
         
     def forward(self, x):
-        x = self.quant(x)
         if self.fine_tune:
             x = self.classifier(self.feature_extractor(x))
         else:
@@ -42,7 +41,6 @@ class ResNet18(pl.LightningModule):
             with torch.no_grad():
                 x = self.feature_extractor(x)
             x = self.classifier(x)
-        x = self.dequant(x)
         return x
 
     def training_step(self, batch, batch_idx):
