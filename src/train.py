@@ -1,6 +1,5 @@
 import argparse
 import os
-import re
 import wandb
 
 from models import *
@@ -9,19 +8,27 @@ from utils import *
 
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import seed_everything
 
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import precision_recall_curve
 
-
 parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    '--load_from_json',
+    type=str,
+    help='Path to a configuration JSON file, will override the other options',
+    default=""
+)
 
 parser.add_argument(
     '--data_dir',
     type=str,
-    help='Where to store the downloaded dataset',
-    default="./data"
+    help='Where to store the downloaded dataset and the models',
+    default="./data/"
 )
 
 parser.add_argument(
@@ -36,6 +43,13 @@ parser.add_argument(
     help='Specify if you want to random crop the images',
     type=bool,
     default=True
+)
+
+parser.add_argument(
+    '--fine_tune',
+    help='Fine tune the model instead of training just the last layer',
+    type=bool,
+    default=False
 )
 
 parser.add_argument(
@@ -68,92 +82,101 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-device = set_device(cuda=args.use_gpu)
-if device.type=="cpu":
-    print("Using CPU")
+if args.load_from_json != "":
+    pass
 else:
-    print("Using GPU")
+    device = set_device(cuda=args.use_gpu)
+    if device.type=="cpu":
+        print("Using CPU")
+        GPUS = 0
+    else:
+        print("Using GPU")
+        GPUS = 1
 
-augmentation = {}
-if args.random_crop:
-    augmentation["random_crop"] = True
-if args.random_erasing:
-    augmentation["random_erasing"] = True
+    augmentation = {}
+    if args.random_crop:
+        augmentation["random_crop"] = True
+    if args.random_erasing:
+        augmentation["random_erasing"] = True
 
-NUM_CLASSES = 10
-BATCH_SIZE=args.batch_size
-VAL_RATIO=0.15
-INPUT_SHAPE = [1, 28, 28]
-EPOCHS = args.epochs
-DATA_DIR = args.data_dir
-MODEL_CKPT_PATH = '/model/'
-MODEL_CKPT = '/model/model-{epoch:02d}-{val_loss:.2f}'
-NUM_WORKERS = args.num_workers
+    NUM_CLASSES = 10
+    BATCH_SIZE=args.batch_size
+    VAL_RATIO=0.15
+    INPUT_SHAPE = [1, 28, 28]
+    EPOCHS = args.epochs
+    DATA_DIR = args.data_dir
+    MODEL_CKPT_PATH = DATA_DIR+'models/'
+    MODEL_CKPT = 'model-{epoch:02d}-{val_loss:.2f}'
+    NUM_WORKERS = args.num_workers
+    FINE_TUNE = args.fine_tune
 
 # Setup folders for saved data
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 
 if __name__ == '__main__':
+
+    seed_everything(1234)
+
+    # loading data
     dm = FashionMNISTDataModule(batch_size=BATCH_SIZE, transforms_args=augmentation, num_classes=NUM_CLASSES, val_ratio=VAL_RATIO, data_dir=DATA_DIR, num_workers=NUM_WORKERS)
     dm.setup()
 
-    model = ResNet18(INPUT_SHAPE, NUM_CLASSES)
+    # Initialize logger for tracking
+    wandb.login()
+    wandb_logger = WandbLogger(project='mlops-project', job_type='train', log_model=True)
+    
+    # Initializing model
+    model = ResNet18(INPUT_SHAPE, NUM_CLASSES, FINE_TUNE)
 
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
         filename=MODEL_CKPT,
+        dirpath=MODEL_CKPT_PATH+wandb_logger.experiment.name,
         save_top_k=3,
         mode='min')
 
     early_stop_callback = EarlyStopping(
         monitor='val_loss',
-        patience=3,
-        verbose=False,
+        patience=5,
+        verbose=True,
         mode='min')
+        
+    pruning_callback = ModelPruning(
+        pruning_fn="l1_unstructured", 
+        amount=0.1, 
+        verbose=1,
+        use_global_unstructured=True)
 
-    wandb.login()
-    wandb_logger = WandbLogger(project='mlops-project', job_type='train')
-
+    # Training
     trainer = pl.Trainer(max_epochs=EPOCHS,
+                        gpus = GPUS,
                         progress_bar_refresh_rate=20,
                         logger=wandb_logger,
                         callbacks=[early_stop_callback,
-                                    checkpoint_callback],
+                                    checkpoint_callback,
+                                    #pruning_callback,
+                                    ImagePredictionLogger()],
                         checkpoint_callback=True)
 
+    # Experiment identifiers
+    run_id = trainer.logger.experiment.id
+    project = trainer.logger.experiment.project
+    entity = trainer.logger.experiment.entity
+
+    trainer.tune(model, datamodule=dm)
     trainer.fit(model, dm)
-    trainer.test()
-    wandb.finish()
+    trainer.test(ckpt_path="best")
 
-    run = wandb.init(project='mlops-project', job_type='producer')
+    # Evaluating
+    best_model = trainer.checkpoint_callback.best_model_path
 
-    artifact = wandb.Artifact('model', type='model')
-    artifact.add_dir(DATA_DIR+MODEL_CKPT_PATH)
-
-    run.log_artifact(artifact)
-    run.join()
-
-    model_ckpts = os.listdir(MODEL_CKPT_PATH)
-    losses = []
-    for model_ckpt in model_ckpts:
-        loss = re.findall("\d+\.\d+", model_ckpt)
-        losses.append(float(loss[0]))
-
-    losses = np.array(losses)
-    best_model_index = np.argsort(losses)[0]
-    best_model = model_ckpts[best_model_index]
-
-    inference_model = ResNet18.load_from_checkpoint(DATA_DIR+MODEL_CKPT_PATH+best_model) if best_model else model
+    inference_model = ResNet18.load_from_checkpoint(best_model)
     y_true, y_pred = evaluate(inference_model, dm.test_dataloader())
 
-    binary_ground_truth = label_binarize(y_true,
-                                        classes=np.arange(0, 10).tolist())
-
+    binary_ground_truth = label_binarize(y_true, classes=[i for i in range(NUM_CLASSES)])
     precision_micro, recall_micro, _ = precision_recall_curve(binary_ground_truth.ravel(),
                                                             y_pred.ravel())
-
-    run = wandb.init(project='mlops-proj', job_type='evaluate')
 
     data = [[x, y] for (x, y) in zip(recall_micro, precision_micro)]
     sample_rate = int(len(data)/10000)
@@ -164,5 +187,8 @@ if __name__ == '__main__':
                                                     "precision_micro", 
                                                     stroke=None, 
                                                     title="Average Precision")})
-
-    run.join()
+    mean_syn, std_syn = measure_inference_time([1, 28, 28], model)
+    throughput = measure_throughput([1, 28, 28], model)
+    wandb.log({"mean_inference_time" : mean_syn, "std_inference_time" : std_syn}) 
+    wandb.log({"inference_per_second" : throughput})
+    wandb.finish()

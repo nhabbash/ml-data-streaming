@@ -1,25 +1,57 @@
 
 import numpy as np
-import random
 import torch
 import wandb
 from pytorch_lightning.callbacks import Callback
 
-def set_seeds(seed=1234):
-    """Set seeds for reproducibility."""
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed) # multi-GPU
+def measure_throughput(input_size, model, optimal_batch_size=128):
+    # Measuring throughput
+    dummy_input = torch.randn([optimal_batch_size]+input_size, dtype=torch.float)
+    repetitions=100
+    total_time = 0
+    with torch.no_grad():
+        for rep in range(repetitions):
+            starter, ender = torch.cuda.Event(enable_timing=True),   torch.cuda.Event(enable_timing=True)
+            starter.record()
+            _ = model(dummy_input)
+            ender.record()
+            torch.cuda.synchronize()
+            curr_time = starter.elapsed_time(ender)/1000
+            total_time += curr_time
+    throughput = (repetitions*optimal_batch_size)/total_time
+    return throughput
+
+def measure_inference_time(input_size, model):
+    # Measuring inference time
+    dummy_input = torch.randn([1]+input_size, dtype=torch.float)
+
+    starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+    repetitions = 300
+    timings=np.zeros((repetitions,1))
+    # GPU warm-up
+    for _ in range(10):
+        _ = model(dummy_input)
+        
+    # Measuring
+    with torch.no_grad():
+        for rep in range(repetitions):
+            starter.record()
+            _ = model(dummy_input)
+            ender.record()
+            # GPU Sync
+            torch.cuda.synchronize()
+            curr_time = starter.elapsed_time(ender)
+            timings[rep] = curr_time
+    mean_syn = np.sum(timings) / repetitions
+    std_syn = np.std(timings)
+    return mean_syn, std_syn
 
 def set_device(cuda=True):
     """Set device, prioritizing GPU if available"""
-    device = torch.device('cuda' if (
-        torch.cuda.is_available() and cuda) else 'cpu')
-    torch.set_default_tensor_type('torch.FloatTensor')
-    if device.type == 'cuda':
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    device = torch.device('cuda' if (torch.cuda.is_available() and cuda) else 'cpu')
+    # torch.set_default_tensor_type('torch.FloatTensor')
+    # if device.type == 'cuda':
+    #     torch.set_default_tensor_type('torch.cuda.FloatTensor')
     return device
 
 def compute_mean_std(loader):
@@ -54,21 +86,10 @@ def evaluate(model, loader):
     return np.array(y_true), np.array(y_pred)
 
 class ImagePredictionLogger(Callback):
-    def __init__(self, val_samples, num_samples=32):
-        super().__init__()
-        self.num_samples = num_samples
-        self.val_imgs, self.val_labels = val_samples
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        if batch_idx == 0:
+            n = 5
+            x, y = batch
         
-    def on_validation_epoch_end(self, trainer, pl_module):
-        val_imgs = self.val_imgs.to(device=pl_module.device)
-        val_labels = self.val_labels.to(device=pl_module.device)
-    
-        logits = pl_module(val_imgs)
-        preds = torch.argmax(logits, -1)
-        
-        trainer.logger.experiment.log({
-            "examples":[wandb.Image(x, caption=f"Pred:{pred}, Label:{y}") 
-                        for x, pred, y in zip(val_imgs[:self.num_samples], 
-                                                preds[:self.num_samples], 
-                                                val_labels[:self.num_samples])]
-            })
+            wandb.log({'examples': [wandb.Image(x_i, caption=f'Ground Truth: {y_i}\nPrediction: {y_pred}')
+                                    for x_i, y_i, y_pred in list(zip(x[:n], y[:n], outputs[:n]))]})

@@ -17,3 +17,6 @@ $ conda env create -f .\environment.yml
 $ cd src
 $ python train.py # --help for options
 ```
+
+# Experiment tracking
+* [WandB dashboard](https://wandb.ai/dodicin/mlops-project)

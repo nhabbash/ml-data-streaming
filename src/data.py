@@ -14,7 +14,7 @@ class FashionMNISTDataModule(pl.LightningDataModule):
         # Augmentation policy for training set
         train_transforms = [
             transforms.RandomHorizontalFlip(),
-            transforms.RandomAffine(degrees=10, translate=(0.1, 0.1)),
+            transforms.RandomAffine(degrees=15, translate=(0.1, 0.1)),
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
             ]
@@ -64,11 +64,18 @@ class FashionMNISTDataModule(pl.LightningDataModule):
         self.val.dataset.transform = self.transform
         self.test.transform = self.transform
         
-    def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+    def train_dataloader(self, batch_size=None, num_workers=None):
+        return torch.utils.data.DataLoader(self.train, 
+                    batch_size=batch_size if batch_size is not None else self.batch_size, 
+                    shuffle=True, 
+                    num_workers=num_workers if num_workers is not None else self.num_workers)
 
-    def val_dataloader(self):
-        return torch.utils.data.DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers)
+    def val_dataloader(self, batch_size=None, num_workers=None):
+        return torch.utils.data.DataLoader(self.val, 
+                    batch_size=batch_size if batch_size is not None else self.batch_size, 
+                    num_workers=num_workers if num_workers is not None else self.num_workers)
 
-    def test_dataloader(self):
-        return torch.utils.data.DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
+    def test_dataloader(self, batch_size=None, num_workers=None):
+        return torch.utils.data.DataLoader(self.test, 
+                    batch_size=batch_size if batch_size is not None else self.batch_size, 
+                    num_workers=num_workers if num_workers is not None else self.num_workers)
