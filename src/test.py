@@ -36,13 +36,33 @@ class DataTest(unittest.TestCase):
 
 class TestResNet(unittest.TestCase):
     def setUp(self):
-        NUM_CLASSES = 10
-        INPUT_SHAPE = [1, 28, 28]
-        FINE_TUNE = False
+        self.num_classes = 10
+        self.input_shape = [1, 28, 28]
+        self.batch_size = 4
 
-        self.model = ResNet18(INPUT_SHAPE, NUM_CLASSES, FINE_TUNE)
-        self.dummy_input = torch.randn([4]+INPUT_SHAPE, dtype=torch.float)
+        self.model = ResNet18(self.input_shape, self.num_classes, False)
+        self.dummy_input = torch.randn([self.batch_size]+self.input_shape, dtype=torch.float)
 
+    @torch.no_grad()
+    def test_shape(self):
+        outputs = self.model(self.dummy_input)
+        self.assertEqual(torch.Size((self.batch_size, self.num_classes)), outputs.shape)
+
+    def test_all_parameters_updated(self):
+        # Check if the model presents any dead sub-graph (unused components)
+
+        optim = torch.optim.SGD(self.model.parameters(), lr=0.1)
+
+        outputs = self.model(self.dummy_input)
+        loss = outputs.mean()
+        loss.backward()
+        optim.step()
+
+        for param_name, param in self.model.named_parameters():
+            if param.requires_grad:
+                with self.subTest(name=param_name):
+                    self.assertIsNotNone(param.grad)
+                    self.assertNotEqual(0., torch.sum(param.grad ** 2))
 
 if __name__ == "__main__":
     unittest.main()
