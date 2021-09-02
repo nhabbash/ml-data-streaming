@@ -1,2 +1,2 @@
 google-cloud-pubsub
-kafka-python
+confluent-kafka
