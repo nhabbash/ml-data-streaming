@@ -70,7 +70,7 @@ class ResNet18(pl.LightningModule):
 
     def _get_preds_loss_accuracy(self, batch):
         x, y = batch
-        logits, preds = self.inference(x)
+        logits, preds = self.predict(x)
         loss = self.loss(logits, y)
         acc = self.accuracy(preds, y)
         return preds, loss, acc

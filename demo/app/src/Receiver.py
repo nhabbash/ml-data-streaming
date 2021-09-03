@@ -1,34 +1,39 @@
-import threading
 import json
-import os
-from .KafkaConsumer import KafkaConsumer
-from .Subscriber import Subscriber
+from src.kafka.KafkaConsumer import KafkaConsumer
+from src.pubsub.PSSubscriber import PSSubscriber
+from src.Message import Message
 
-class Receiver(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.stop_event = threading.Event()
-        self._receiver = None
-    
-    def setup(self, config_file):
-        with open(config_file, "r") as file:
-            conf = json.load(file)
-        
-        type = config_file.split("/")[1]
+def process_res(*args):
+    if len(args)==2:
+        res, _ = args
+        if res.error():
+            print("Error")
+            return
+        key = res.key().decode("utf-8")
+        value = res.value().decode("utf-8")
+        msg = Message(key=key, value=value)
+        print(f"Received {msg} @offset {res.offset()}")
+    else: #PubSub
+        res = args[0]
+        msg = json.loads(res.data)
+        msg = Message(key=msg["key"], value=msg["value"])
+        print(f"Received {msg}")
+        res.ack()
 
-        if type not in ["kafka", "pubsub"]:
-            raise Exception("Only Kafka and PubSub are supported")
-        
-        if type == "kafka":
+class Receiver:
+    def __init__(self, conf, _from):
+
+        self._type = _from
+        if self._type == "kafka":
             self._receiver = KafkaConsumer(conf)
         else:
-            self._receiver = Subscriber(conf)
+            self._receiver = PSSubscriber(conf)
 
     def stop(self):
-        self.stop_event.set()
+        pass
 
     def subscribe(self, topic):
         self._receiver.subscribe(topic)
 
-    def receive(self, timeout=1, session_max=-1):
-        self._receiver.receive(timeout, session_max)
+    def receive(self, timeout=1, callback=process_res):
+        self._receiver.receive(timeout=timeout, callback=callback)

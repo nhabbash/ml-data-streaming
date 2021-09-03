@@ -17,9 +17,6 @@ class ResNet18(pl.LightningModule):
 
         self.accuracy = torchmetrics.Accuracy()
         self.loss = nn.CrossEntropyLoss()
-        
-        #self.quant = torch.quantization.QuantStub()
-        #self.dequant = torch.quantization.DeQuantStub()
 
         self.feature_extractor = models.resnet18(pretrained=True)
         self.feature_extractor.conv1 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=True)
@@ -43,34 +40,13 @@ class ResNet18(pl.LightningModule):
             x = self.classifier(x)
         return x
 
-    def training_step(self, batch, batch_idx):
-        _, loss, acc = self._get_preds_loss_accuracy(batch)
-
-        self.log('train_loss', loss)
-        self.log('train_accuracy', acc)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        preds, loss, acc = self._get_preds_loss_accuracy(batch)
-
-        self.log('val_loss', loss)
-        self.log('val_accuracy', acc)
-
-        return preds
-
-    def test_step(self, batch, batch_idx):
-        _, loss, acc = self._get_preds_loss_accuracy(batch)
-
-        self.log('test_loss', loss)
-        self.log('test_accuracy', acc)
-    
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
     def _get_preds_loss_accuracy(self, batch):
         x, y = batch
-        logits, preds = self.inference(x)
+        logits, preds = self.predict(x)
         loss = self.loss(logits, y)
         acc = self.accuracy(preds, y)
         return preds, loss, acc

@@ -3,7 +3,7 @@
 ## Overview
 TODO
 
-# Prerequisites
+## Prerequisites
 * Conda 
 ## Installation
 ```sh
@@ -11,7 +11,7 @@ $ git clone https://github.com/nhabbash/mlops-project
 $ cd mlops-project
 $ conda env create -f .\environment.yml
 ```
-# Training
+## Training
 ```sh
 $ cd src
 $ python train.py # --help for options

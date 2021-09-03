@@ -1,0 +1,4 @@
+{
+    "project_id" : "tokyo-rain-123",
+    "endpoint" : "http://localhost:3000/messages"
+}

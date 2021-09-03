@@ -323,3 +323,4 @@ artifacts
 demo/notes.txt
 .venv
 *model.*
+demo/app/tmp
