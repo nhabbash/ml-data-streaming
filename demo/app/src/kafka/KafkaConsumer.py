@@ -14,6 +14,9 @@ class KafkaConsumer(ReceiverInterface):
     def unsubscribe(self, topic, callback=None):
         pass
 
+    def close(self):
+        pass
+
     def receive(self, callback, timeout=None):
         try:
             res = None
@@ -21,6 +24,6 @@ class KafkaConsumer(ReceiverInterface):
                 res = self._consumer.poll(timeout=timeout)
                 if res is None:
                     continue
-                callback(res, 0)
+                callback(res, 0) #TODO: see config rd_kafka_conf_set_consume_cb()
         except Exception as e:
             print(e)

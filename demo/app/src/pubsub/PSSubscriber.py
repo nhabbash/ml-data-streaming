@@ -8,10 +8,10 @@ class PSSubscriber(ReceiverInterface):
         self._conf = conf
         self._project_id = self._conf['project_id']
         self._project_path = f"projects/{self._project_id}"
-        self._sub_id = "test-"+str("-".join([uuid.uuid4().hex[:4] for i in range(2)]))
+        self._sub_id = self._conf['subscriber_id_prefix']+"-"+uuid.uuid4().hex[:4]
         self._subscriber = pubsub_v1.SubscriberClient()
 
-    def subscribe(self, topic, type="push", callback=None):
+    def subscribe(self, topic, type="pull", callback=None):
         topic_path = self._subscriber.topic_path(self._project_id, topic)
         self.subscription_path = self._subscriber.subscription_path(self._project_id, self._sub_id)
 
@@ -24,6 +24,9 @@ class PSSubscriber(ReceiverInterface):
     def unsubscribe(self, topic, callback=None):
         pass
 
+    def close(self):
+        self._subscriber.close()
+    
     def receive(self, callback, timeout=None):
         futures = self._subscriber.subscribe(subscription=self.subscription_path, callback=callback)
         with self._subscriber:
