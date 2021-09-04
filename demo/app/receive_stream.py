@@ -43,3 +43,4 @@ if __name__ == "__main__":
 
     print(f"Listening for messages...\n")
     receiver.receive(callback=process_res)
+    receiver.close()

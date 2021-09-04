@@ -3,6 +3,7 @@ import uuid
 import json
 import time
 from random import randrange
+from src.utils import NumpyArrayEncoder, load_mnist, preprocess_images, get_batch
 from src.Sender import Sender, delivery_ack
 from src.Message import Message
 
@@ -58,13 +59,20 @@ if __name__ == "__main__":
     sender.list_topics()
 
     topic_in = topic_conf["topic_in"]
-    key = uuid.uuid4().hex[:4]
 
-    print("Sending")
-    while True:
-        val = json.dumps({"value": randrange(100)})
-        msg = Message(key=key, value=val)
+    # Reading data
+    x, y = load_mnist("data/")
+    x = preprocess_images(x)
+
+    batch_size = 8
+    x_batches = get_batch(x, batch_size)
+    print("Sending...")
+    for i in range(100):
+        key = uuid.uuid4().hex[:4] # Assigning unique key to each message
+        #print(x_batches[i].nbytes/1e6) batch size
+        payload = {"ndarray": x_batches[i]}
+        encoded_payload = json.dumps(payload, cls=NumpyArrayEncoder)
+        msg = Message(key=key, value=encoded_payload)
         sender.send(topic=topic_in, msg=msg, callback=delivery_ack)
-        sender.flush()
         time.sleep(0.1)
-    
+    sender.flush()
