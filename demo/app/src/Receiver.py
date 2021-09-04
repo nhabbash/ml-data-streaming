@@ -4,7 +4,7 @@ from src.pubsub.PSSubscriber import PSSubscriber
 from src.Message import Message
 
 def process_res(*args):
-    if len(args)==2:
+    if len(args)==2: #Kafka
         res, _ = args
         if res.error():
             print("Error")
@@ -12,12 +12,12 @@ def process_res(*args):
         key = res.key().decode("utf-8")
         value = res.value().decode("utf-8")
         msg = Message(key=key, value=value)
-        print(f"Received {msg} @offset {res.offset()}")
+        print(f"Received record ID {msg.key}")
     else: #PubSub
         res = args[0]
         msg = json.loads(res.data)
         msg = Message(key=msg["key"], value=msg["value"])
-        print(f"Received {msg}")
+        print(f"Received record ID {msg.key}")
         res.ack()
 
 class Receiver:
@@ -29,8 +29,8 @@ class Receiver:
         else:
             self._receiver = PSSubscriber(conf)
 
-    def stop(self):
-        pass
+    def close(self):
+        self._receiver.close()
 
     def subscribe(self, topic):
         self._receiver.subscribe(topic)

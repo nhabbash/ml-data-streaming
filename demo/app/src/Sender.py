@@ -1,5 +1,3 @@
-import threading
-import json
 from src.kafka.KafkaProducer import KafkaProducer
 from src.pubsub.PSPublisher import PSPublisher
 
@@ -12,15 +10,14 @@ def delivery_ack(*args):
         if err is not None:
             print("Failed to deliver message: {}".format(err))
         else:
-            print("Produced record to topic {} partition [{}] @ offset {}".format(msg.topic(), msg.partition(), msg.offset()))
+            print(f"Produced record ID {msg.key().decode('utf-8')} to topic {msg.topic()}")
     else: # PubSub
         future = args[0]
         try:
             msg_id = future.result()
-            print("Produced record ID {}".format(msg_id))
+            print(f"Produced record ID {msg_id}")
         except Exception as e:
-            print("Failed to deliver message: {}".format(e))
-
+            print(f"Failed to deliver message: {e}")
 
 class Sender:
     def __init__(self, conf, to):
@@ -47,5 +44,3 @@ class Sender:
         print("Listing topics: ")
         for t in self._sender.list_topics():
             print(t)
-
-    
