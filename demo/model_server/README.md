@@ -5,12 +5,13 @@ $ seldon-core-microservice FashionClassifier --service-type MODEL
 
 Testing container: 
 ```sh
-$ docker build -t "fashionclassifier-test" .
-$ docker run --name "fashionclassifier-test" -d --rm -p 9001:9000 fashionclassifier
+$ docker build -t fashion-classifier .
+$ docker run --name fashion-classifier -d --rm -p 9001:9000 fashion-classifier
+$ docker stop fashion-classifier
 ```
 
 Sending request:
 ```sh
-$ curl http://localhost:9001/api/v1.0/predictions -H 'Content-Type: application/json' -d '{"data": {"names": ["input"], "ndarray": ["TEST"]}}' # For the test build
-$ curl localhost:9001/health/status # Actually tests the deployed model
+$ curl http://localhost:9001/api/v1.0/predictions -H 'Content-Type: application/json' -d @test_input.json # Use the correct port
+$ curl localhost:9001/health/status
 ```
