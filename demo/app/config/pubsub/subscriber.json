@@ -1,5 +1,0 @@
-{
-    "project_id" : "tokyo-rain-123",
-    "endpoint" : "http://localhost:3000/messages",
-    "subscriber_id_prefix": "sub"
-}

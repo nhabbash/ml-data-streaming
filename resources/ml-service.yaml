@@ -1,0 +1,26 @@
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  name: fashion-classifier
+spec:
+  serverType: kafka
+  predictors:
+  - componentSpecs:
+    - spec:
+        containers:
+        - image: nhabbash/fashion-classifier
+          name: classifier
+    svcOrchSpec:
+      env:
+      - name: KAFKA_BROKER
+        value: fashion-mb-kafka-brokers.default.svc.cluster.local:9092
+      - name: KAFKA_INPUT_TOPIC
+        value: model-input
+      - name: KAFKA_OUTPUT_TOPIC
+        value: model-output
+    graph:
+      name: classifier
+      type: MODEL
+      
+    name: default
+    replicas: 1

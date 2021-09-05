@@ -1,3 +1,0 @@
-google-cloud-pubsub
-confluent-kafka
-numpy

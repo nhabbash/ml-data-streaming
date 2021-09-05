@@ -317,10 +317,7 @@ pr.diff
 lightning_logs
 wandb
 mlops-project
-*/data
-data
+notebook/src/data
 artifacts
-demo/notes.txt
 .venv
-#*model.*
-demo/app/tmp
+#*model*
