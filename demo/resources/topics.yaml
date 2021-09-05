@@ -1,9 +1,9 @@
 apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaTopic
 metadata:
-  name: input
+  name: model-input
   labels:
-    strimzi.io/cluster: "fashion-recognition"
+    strimzi.io/cluster: "strimzi-kafka"
 spec:
   partitions: 2
   replicas: 1
@@ -11,9 +11,9 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaTopic
 metadata:
-  name: output
+  name: model-output
   labels:
-    strimzi.io/cluster: "fashion-recognition"
+    strimzi.io/cluster: "strimzi-kafka"
 spec:
   partitions: 2
   replicas: 1

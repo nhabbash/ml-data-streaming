@@ -1,11 +1,11 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  name: fashion-recognition
+  name: fashion-mb
 spec:
   kafka:
     version: 2.8.0
-    replicas: 3
+    replicas: 1
     listeners:
       - name: plain
         port: 9092
@@ -20,15 +20,15 @@ spec:
         type: nodeport
         tls: false
     config:
-      offsets.topic.replication.factor: 3
-      transaction.state.log.replication.factor: 3
-      transaction.state.log.min.isr: 2
-      log.message.format.version: "2.8"
-      inter.broker.protocol.version: "2.8"
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      # log.message.format.version: "2.8"
+      # inter.broker.protocol.version: "2.8"
     storage:
       type: ephemeral
   zookeeper:
-    replicas: 3
+    replicas: 1
     storage:
       type: ephemeral
   entityOperator:
