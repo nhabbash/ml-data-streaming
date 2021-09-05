@@ -1,6 +1,12 @@
 import json
 
 class Message:
+    """Message class.
+
+        Attributes:
+            key (str): Identifier
+            value (str): Message payload
+    """     
     def __init__(self, key, value):
         self.key = key
         self.value = value

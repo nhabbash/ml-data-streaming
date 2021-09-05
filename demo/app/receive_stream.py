@@ -1,6 +1,6 @@
 import argparse
 import os, sys, json
-from src.Receiver import Receiver, process_res
+from src.Receiver import Receiver, receive_cb
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -26,7 +26,7 @@ args = parser.parse_args()
 if __name__ == "__main__":
 
     with open(args.receiver_conf, "r") as file:
-        sender_conf = json.load(file)
+        receiver_conf = json.load(file)
 
     with open(args.topics_conf, "r") as file:
         topics_conf = json.load(file)
@@ -35,12 +35,12 @@ if __name__ == "__main__":
     if conf_from != args.From:
         raise Exception(f"Configuration mismatch: trying to receive from {args.From} with configuration for {conf_from}")
         
-    receiver = Receiver(conf=sender_conf, _from=args.From)
-    topic = topics_conf["topic_in"]
+    receiver = Receiver(conf=receiver_conf, _from=args.From)
+    topic = topics_conf["topic_out"]
 
     print(f"Subscribing to topic {topic}")
     receiver.subscribe(topic)
 
     print(f"Listening for messages...\n")
-    receiver.receive(callback=process_res)
+    receiver.receive(callback=receive_cb)
     receiver.close()

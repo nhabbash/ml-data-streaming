@@ -1,10 +1,9 @@
 import argparse
 import uuid
 import json
-import time
-from random import randrange
 from src.utils import NumpyArrayEncoder, load_mnist, preprocess_images, get_batch
 from src.Sender import Sender, send_cb
+from src.Receiver import Receiver, receive_cb
 from src.Message import Message
 
 parser = argparse.ArgumentParser()
@@ -13,20 +12,34 @@ parser.add_argument(
     '--To',
     type=str,
     help='Default message broker to send to',
-    choices=('kafka', 'pubsub'), required=True)
+    default='kafka',
+    choices=('kafka', 'pubsub'))
+
+parser.add_argument(
+    '--From',
+    type=str,
+    default='kafka',
+    help='Default message broker to receive from',
+    choices=('kafka', 'pubsub'))
 
 parser.add_argument(
     '--sender_conf',
     type=str,
-    help='Path to a producing config file', 
-    required=True)
+    help='Path to a producing config file',
+    default='config/kafka/producer.json')
 
 parser.add_argument(
     '--kafka_admin_conf',
     type=str,
     help='Path to a Kafka admin config file, needed if sending to Kafka',
-    default="config/kafka/admin.json"
+    default='config/kafka/admin.json'
 )
+
+parser.add_argument(
+    '--receiver_conf',
+    type=str,
+    help='Path to a receiving config file',
+    default='config/kafka/consumer.json')
 
 parser.add_argument(
     '--topic_conf',
@@ -36,43 +49,48 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 
-    with open(args.sender_conf, "r") as file:
+    with open(args.sender_conf, 'r') as file:
         sender_conf = json.load(file)
+    
+    with open(args.receiver_conf, "r") as file:
+        receiver_conf = json.load(file)
 
-    with open(args.topic_conf, "r") as file:
+    with open(args.topic_conf, 'r') as file:
         topic_conf = json.load(file)
 
-    conf_to = args.sender_conf.split("/")[1]
-    if conf_to != args.To:
-        raise Exception(f"Configuration mismatch: trying to send to {args.To} with configuration for {conf_to}")
-        
     sender = Sender(conf=sender_conf, to=args.To)
 
-    if args.To == "kafka":
+    if args.To == 'kafka':
         sender._sender._init_admin_config(conf=args.kafka_admin_conf) # Needed to create topics for Kafka
 
     for _, val in topic_conf.items():
         sender.create_topic(val)
 
-    sender.list_topics()
-
-    topic_in = topic_conf["topic_in"]
+    topic_in = topic_conf['topic_in']
 
     # Reading data
-    x, y = load_mnist("data/")
+    x, y = load_mnist('data/')
     x = preprocess_images(x)
 
     batch_size = 1
     x_batches = get_batch(x, batch_size)
-    print("Sending...")
+    print('Sending...')
     for i in range(100):
-        key = uuid.uuid4().hex[:4] # Assigning unique key to each message
-        #print(x_batches[i].nbytes/1e6) batch size
-        payload = {"ndarray": x_batches[i]}
+        key = uuid.uuid4().hex[:4]
+        payload = {'ndarray': x_batches[i]}
         encoded_payload = json.dumps(payload, cls=NumpyArrayEncoder)
         msg = Message(key=key, value=encoded_payload)
         sender.send(topic=topic_in, msg=msg, callback=send_cb)
-        time.sleep(0.1)
     sender.flush()
+
+    receiver = Receiver(conf=receiver_conf, _from=args.From)
+    topic_out = topic_conf["topic_in"]
+
+    print(f"Subscribing to topic {topic_out}")
+    receiver.subscribe(topic_out)
+
+    print(f"Listening for messages...\n")
+    receiver.receive(callback=receive_cb)
+    receiver.close()

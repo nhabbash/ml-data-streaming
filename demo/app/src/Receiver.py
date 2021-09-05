@@ -1,28 +1,27 @@
-import json
 from src.kafka.KafkaConsumer import KafkaConsumer
 from src.pubsub.PSSubscriber import PSSubscriber
-from src.Message import Message
+from src.decorators import on_receive
 
-def process_res(*args):
-    if len(args)==2: #Kafka
-        res, _ = args
-        if res.error():
-            print("Error")
-            return
-        key = res.key().decode("utf-8")
-        value = res.value().decode("utf-8")
-        msg = Message(key=key, value=value)
-        print(f"Received record ID {msg.key}")
-    else: #PubSub
-        res = args[0]
-        msg = json.loads(res.data)
-        msg = Message(key=msg["key"], value=msg["value"])
-        print(f"Received record ID {msg.key}")
-        res.ack()
+@on_receive
+def receive_cb(err, msg):
+    """Receive callback called when a message is receive, containing the formatted message
 
+    Args:
+        err (Exception): Error if there was any
+        msg (Message): Received message
+    """    
+    if err:
+        print(f"Error while receiving the message: {err}")
+    else:
+        print(f"Received record ID {msg.key}")
 class Receiver:
-    def __init__(self, conf, _from):
+    """Generic Receiver class. Receives messages from whatever message broker it's been configurated with.
 
+        Attributes:
+            _type (str): Message Broker type
+            _receiver (ReceiverInterface): Receiver object
+    """     
+    def __init__(self, conf, _from):
         self._type = _from
         if self._type == "kafka":
             self._receiver = KafkaConsumer(conf)
@@ -30,10 +29,26 @@ class Receiver:
             self._receiver = PSSubscriber(conf)
 
     def close(self):
+        """Closes receiver
+        """        
         self._receiver.close()
 
     def subscribe(self, topic):
+        """Subscribes to topic
+
+        Args:
+            topic (str): Topic name
+        """        
         self._receiver.subscribe(topic)
 
-    def receive(self, timeout=1, callback=process_res):
-        self._receiver.receive(timeout=timeout, callback=callback)
+    def receive(self, timeout=1, callback=receive_cb):
+        """Listen to messages on the subscribed topic
+
+        Args:
+            timeout (float, optional): Maximum time to block waiting for message, event or callback. Defaults to 1.
+            callback (fn(*args), optional): Message handling callback. Defaults to process_res.
+        """
+        try:
+            self._receiver.receive(timeout=timeout, callback=callback)
+        except Exception as e:
+            print(e)
