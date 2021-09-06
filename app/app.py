@@ -20,13 +20,13 @@ def communicate_with(broker):
         app.sender.create_topic(val)
 
     # Consuming data
-    topic_write = topic_conf["topic_in"]
-    print(f"#### APP: Subscribing to topic {topic_write}@{app.broker}")
-    app.receiver.subscribe(topic_write)
-
-    print(f"#### APP: Listening for messages in topic {topic_write}@{app.broker}...\n")
+    topic_read = topic_conf["topic_in"]
+    print(f"#### APP: Subscribing to topic {topic_read}@{app.broker}")
+    app.receiver.subscribe(topic_read)
+    timeout=5
+    print(f"#### APP: Listening for messages in topic {topic_read}@{app.broker} with timeout={timeout}s\n")
     # This receives on another thread
-    app.receiver.receive(timeout=2, callback=receive_cb)
+    app.receiver.receive(timeout=timeout, callback=receive_cb)
 
     # Producing data
     x, y = load_mnist('data/')
@@ -34,14 +34,14 @@ def communicate_with(broker):
 
     batch_size = 1
     x_batches = get_batch(x, batch_size)
-    topic_read = topic_write
-    print(f'#### APP: Sending messages to topic {topic_read}@{app.broker}')
+    topic_write = topic_read
+    print(f'#### APP: Sending messages to topic {topic_write}@{app.broker}')
     for i in range(10):
         key = uuid.uuid4().hex[:4]
         payload = {'ndarray': x_batches[i]}
         encoded_payload = json.dumps(payload, cls=NumpyArrayEncoder)
         msg = Message(key=key, value=encoded_payload)
-        app.sender.send(topic=topic_read, msg=msg, callback=send_cb)
+        app.sender.send(topic=topic_write, msg=msg, callback=send_cb)
 
     app.sender.flush()
     app.receiver.close()

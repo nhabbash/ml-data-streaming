@@ -42,6 +42,7 @@ class KafkaConsumer(ReceiverInterface):
             res = self._consumer.poll(timeout=timeout)
             if res and res.error():
                 if res.error().code() == -191: # Stops polling when reaching PARTITION_EOF, no new messages to read. Need to set it in the configuration!
+                    print("PARTITION_EOF")
                     break
             if res is None:
                 continue
