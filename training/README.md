@@ -1,18 +1,28 @@
-# Training - Fashion Clothes Recognizer
+# Training - Fashion Recognizer
 This folder collects utilities to train and test a CNN on a given dataset for an image classification task.
 
-The code is based on Pytorch Lightning.
+## Prerequisites
+* Conda
+* A formatted dataset as described in this [section](###Custom-datasets)
 
-## Quickstart
+```sh
+cd training
+conda env create -f environment.yml
+```
+# Usage
 
 ### Loading dataset
 ```python
+from src.data import FashionModule
+
 # Loading Fashion MNIST
 BATCH_SIZE=64
 NUM_CLASSES=10
 dm = FashionDataModule(num_classes=NUM_CLASSES, batch_size=BATCH_SIZE, num_workers=4)
 dm.setup()
-
+```
+### Custom datasets
+```python
 # Loading custom dataset
 BATCH_SIZE=64
 NUM_CLASSES=6
@@ -29,15 +39,21 @@ AUGMENT = {"random_crop": True, "random_erasing": True, "random_perspective": Tr
 
 dm = FashionDataModule(num_classes=NUM_CLASSES, transforms_args=AUGMENT, custom_ds_info=INFO)
 dm.setup()
-
-dataiter = iter(dm.train_dataloader())
-images, labels = dataiter.next()
 ```
+Note that to load a custom dataset you'll need to provide all the needed files inside the same directory, eg: 
+  * `data/datasets/cs-dataset/`
+    * `labels.csv`
+    * `images/`
 
-Note that to load a custom dataset you'll need to provide a `csv` file formatted as `image_id, label`, where `image_id` is the name of the image (without extension) and `label` is its class. Check out the class `src.data.FashionDataset` to see how the images are read. 
+The `csv` file has to be formatted as `image_id, label`, where `image_id` is the name of the image (without extension) and `label` is its class. Check out the class `src.data.FashionDataset` to see how the images are read. 
 
-### Training and testing
+## Training and testing
 ```python
+import pytorch_lightning as pl
+from models import ResNet18
+
+model = ResNet18(num_classes=NUM_CLASSES, fine_tune=True)
+
 trainer = pl.Trainer(max_epochs=EPOCHS,
                     auto_lr_find=True,
                     logger=logger,
@@ -47,14 +63,14 @@ trainer.tune(model, datamodule=dm)
 trainer.fit(model, dm)
 trainer.test(ckpt_path="best")
 ```
-### Logging
+## Logging
 Logging is provided by [Weights and Biases](https://wandb.ai/). You can check the current dashboard for this project [here](https://wandb.ai/dodicin/mlops-project).
 
-### Utilities
+## Utilities
 * Jupyter Notebook for interactive testing under [`testing.ipynb`](testing.ipynb)
 * Unit tests for the model and the dataloader under [`tests.py`](tests.py)
 * CLI training script under [`train.py`](train.py) (use `python train.py -h` for the arguments)
-* Training configurations under [`config/`](config) to be run with the command `python train.py --json config/test_run_config.json`. Note that using the configuration overrides the other arguments passed to the script. The configuration has to have the following fields:
+* Training configurations under [`config/`](config) to be run with the training script `python train.py --json config/test_run_config.json`. Note that using the configuration overrides the other arguments passed to the script. The configuration has to have the following fields:
 
 ```sh
   * gpu: bool           # Train on GPU or not
