@@ -106,4 +106,9 @@ $ python app.py
 # Run app inside a container (PubSub might not work)
 $ docker build -t nhabbash/stream-app .
 $ docker run --rm --network host --name stream-app nhabbash/stream-app
+
+# Run app inside pod in K8s (Won't connect to anything)
+$ kubectl apply -f ../resources/stream-app-config.yml
+# Check that it's running
+$ kubectl logs stream-app-<id>
 ```

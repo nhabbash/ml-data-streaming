@@ -48,7 +48,10 @@ def communicate_with(broker):
 
 if __name__ == '__main__':
     print("\n\n\n############ KAFKA CONNECTION ############")
-    communicate_with("kafka")
+    try:
+        communicate_with("kafka")
+    except Exception as e:
+        print(e)
     print("\n\n\n############ PUBSUB CONNECTION ############")
     try:
         communicate_with("pubsub")

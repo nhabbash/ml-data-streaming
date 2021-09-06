@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stream-app
+  template:
+    metadata:
+      labels:
+        app: stream-app
+    spec:
+      containers:
+      - name: stream-app
+        image: nhabbash/stream-app
+---
+# If this was a webservice we could access it from here
+apiVersion: v1
+kind: Service
+metadata:
+  name: stream-app-entrypoint
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    app: stream-app
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30001

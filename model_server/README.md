@@ -26,8 +26,8 @@ $ seldon-core-microservice FashionClassifier --service-type MODEL
 ### Prerequisites
 * Docker
 ```sh
-$ docker build -t fashion-classifier .
-$ docker run --name fashion-classifier -d --rm -p 9001:9000 fashion-classifier
+$ docker build -t nhabbash/fashion-classifier .
+$ docker run --name fashion-classifier -d --rm -p 9001:9000 nhabbash/fashion-classifier
 ```
 
 ## Deploy in a pod on K8s
