@@ -1,10 +1,6 @@
-import uuid
 import json
-import os
-from src.utils import NumpyArrayEncoder, load_mnist, preprocess_images, get_batch
-from src.Sender import Sender, send_cb
-from src.Receiver import Receiver, receive_cb
-from src.Message import Message
+from src.Sender import Sender
+from src.Receiver import Receiver
 
 class Application:
     def __init__(self):
