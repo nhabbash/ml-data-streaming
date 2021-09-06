@@ -1,6 +1,5 @@
 # Fashion Recognizer - ML Service
-This ML service deploys a model trained on Fashion MNIST. It can be deployed on K8s 
-
+This ML service deploys a model trained on Fashion MNIST. It uses Seldon Core
 
 ## Local testing
 

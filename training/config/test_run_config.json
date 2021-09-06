@@ -1,0 +1,18 @@
+{
+    "gpu": true,
+    "augment": true,
+    "pruning": false,
+    "num_classes": 10,
+    "batch_size": 128,
+    "epochs": 50,
+    "fine_tune": true,
+    
+    "run_dir": "./data/training_run/",
+    "custom_ds": false,
+    "csv_file": "",
+    "ds_dir": "",
+    "split": [],
+
+    "num_runs": 5,
+    "fast_dev_run": true
+}

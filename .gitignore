@@ -317,7 +317,8 @@ pr.diff
 lightning_logs
 wandb
 mlops-project
-notebook/src/data
+training/src/data
+training/data
 artifacts
 .venv
 #*model*

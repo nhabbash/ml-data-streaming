@@ -1,0 +1,18 @@
+{
+    "gpu": true,
+    "augment": true,
+    "pruning": false,
+    "batch_size": 128,
+    "epochs": 2,
+    "fine_tune": true,
+    "num_classes": 6,
+    
+    "run_dir": "./data/training_run/",
+    "custom_ds": true,
+    "csv_file": "./data/datasets/fashion-products-small/preprocessed_labels.csv",
+    "ds_dir": "./data/datasets/fashion-products-small/images",
+    "split": [0.7, 0.15, 0.15],
+
+    "num_runs": 1,
+    "fast_dev_run": false
+}
