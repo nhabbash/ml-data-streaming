@@ -1,23 +1,15 @@
-# Clothes Recognizer
+# Fashion Recognition
 
 ## Overview
-TODO
+This repository implements a system where 
 
 ## Prerequisites
-* Conda 
+* See
 ## Installation
 ```sh
 $ git clone https://github.com/nhabbash/mlops-project
 $ cd mlops-project
-$ conda env create -f ./notebook/environment.yml
 ```
-## Training
-```sh
-$ cd src
-$ python train.py # --help for options
-```
-# Experiment tracking
-* [WandB dashboard](https://wandb.ai/dodicin/mlops-project)
 ## Structure
 The repository is structured as follows:
 

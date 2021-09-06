@@ -1,6 +1,7 @@
 from src.kafka.KafkaConsumer import KafkaConsumer
 from src.pubsub.PSSubscriber import PSSubscriber
 from src.decorators import on_receive
+from threading import Thread
 
 @on_receive
 def receive_cb(err, msg):
@@ -20,9 +21,11 @@ class Receiver:
         Attributes:
             _type (str): Message Broker type
             _receiver (ReceiverInterface): Receiver object
+            _thread (Thread): Instantiated thread
     """     
     def __init__(self, conf, _from):
         self._type = _from
+        self._thread = None
         if self._type == "kafka":
             self._receiver = KafkaConsumer(conf)
         else:
@@ -30,7 +33,8 @@ class Receiver:
 
     def close(self):
         """Closes receiver
-        """        
+        """ 
+        self._thread.join()
         self._receiver.close()
 
     def subscribe(self, topic):
@@ -42,13 +46,14 @@ class Receiver:
         self._receiver.subscribe(topic)
 
     def receive(self, timeout=None, callback=receive_cb):
-        """Listen to messages on the subscribed topic
+        """Listen to messages on the subscribed topic by waiting on an instantiated thread.
 
         Args:
             timeout (float, optional): Maximum time to block waiting for message, event or callback. Defaults to 1.
             callback (fn(*args), optional): Message handling callback. Defaults to process_res.
         """
         try:
-            self._receiver.receive(timeout=timeout, callback=callback)
+            self._thread = Thread(target = self._receiver.receive, kwargs = {"callback": callback, "timeout": timeout})
+            self._thread.start()
         except Exception as e:
             print(e)

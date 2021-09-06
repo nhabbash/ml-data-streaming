@@ -82,9 +82,7 @@ class KafkaProducer(SenderInterface):
 
         Args:
             conf (object): Configuration object
-        """        
-        with open(conf, "r") as file:
-            conf = json.load(file)
+        """
         self._admin_conf = conf
 
     def delete_topic(self, topic):

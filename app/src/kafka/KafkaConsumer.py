@@ -34,10 +34,15 @@ class KafkaConsumer(ReceiverInterface):
         Args:
             callback (fn(*args)): Message processing callback
             timeout (float, optional): Maximum time to block waiting for message, event or callback. Defaults to None.
-        """        
+        """
+        polling = True
         res = None
-        while True:
+        if not timeout: timeout=0
+        while polling:
             res = self._consumer.poll(timeout=timeout)
+            if res and res.error():
+                if res.error().code() == -191: # Stops polling when reaching PARTITION_EOF, no new messages to read. Need to set it in the configuration!
+                    break
             if res is None:
                 continue
             callback(res, 0) #TODO: see config rd_kafka_conf_set_consume_cb()

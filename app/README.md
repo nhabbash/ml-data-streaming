@@ -41,44 +41,26 @@ receiver.close()
 ```
 
 ## Usage
-The library is comprised of three components:
+The library is comprised of 3 components:
 * `Sender(conf, to)` class, responsible for sending messages to the configured message broker
     * `create_topic(topic)`: creates a topic from a topic name
     * `send(topic, msg, callback=send_cb)`: sends a `Message` msg to the configurated broker
 * `Receiver(conf, from)` class, responsible for receiving messages to the configured message broker
     * `subscribe(topic)`: subscribes to a topic from a topic name if it exists
-    * `receive(timeout=None, callback=receive_cb):`: listens to messages from the subscription to the broker. The messages are processed in the callback passed to it.
+    * `receive(timeout=None, callback=receive_cb):`: listens to messages from the subscription to the broker asynchronously. The messages are processed in the callback passed to it.
 * `Message` class, responsible for transforming the messages to a unified format.
 
 The callbacks passed to the `receive` and `send` methods have to be decorated with the decorators provided in the `decorators` module, `@on_delivery` and `@on_receive`, which format the incoming payload to a `Message` object.
 
 The configuration for each message broker is kept under `config/`.
 
-## Application
-* Sender process: `send_stream.py`
-* Receiver process: `receive_stream.py`
-* Application (does both): `app.py`
+An `Application` example class is provided, which wraps over a `Sender` and `Receiver` and simulates broker interactions and broker changes during runtime, such as communicating with Kafka first and then PubSub from the same context.
 
-```sh
-usage: app.py [-h] [--To {kafka,pubsub}] [--From {kafka,pubsub}] [--sender_conf SENDER_CONF]
-              [--kafka_admin_conf KAFKA_ADMIN_CONF] [--receiver_conf RECEIVER_CONF] [--topic_conf TOPIC_CONF]
+## Utilities
+* Example application: `app.py`, need to have a PubSub Emulator and Kafka instances open, simulates connecting to one and then the other and reading/writing to them.
+* Test read/write: `test_stream.py`, tests reading and writing to a message broker, support arguments for options (`see python test_stream.py -h`)
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --To {kafka,pubsub}   Default message broker to send to
-  --From {kafka,pubsub}
-                        Default message broker to receive from
-  --sender_conf SENDER_CONF
-                        Path to a producing config file
-  --kafka_admin_conf KAFKA_ADMIN_CONF
-                        Path to a Kafka admin config file, needed if sending to Kafka
-  --receiver_conf RECEIVER_CONF
-                        Path to a receiving config file
-  --topic_conf TOPIC_CONF
-                        Path to the topic configuration
-```
-The application sends as payloads encoded numpy arrays from the Fashion MNIST test dataset, located under `./data/`. 
-
+The scripts send as payloads encoded numpy arrays from the Fashion MNIST test dataset, located under `./data/`. 
 
 ## Starting Kafka locally
 ### Prerequisites:
@@ -112,18 +94,16 @@ $ python -m venv .venv
 $ source .venv/bin/activate
 $ pip install -r requirements.txt
 
-# PubSub
-$ python receive_stream.py --From pubsub --receiver_conf config/pubsub/subscriber.json
-$ python send_stream.py --To pubsub --sender_conf config/pubsub/publisher.json
-
 # Kafka
-$ python receive_stream.py --From kafka --receiver_conf config/kafka/consumer.json
-$ python send_stream.py --To kafka --sender_conf config/kafka/producer.json
+$ python test_stream.py # Arguments default to Kafka
 
-# Defaults to Kafka for both sending and receiving, the app can work with PubSub but it won't receive any messages as the subscription is made after the Publisher sends messages
+# PubSub
+$ python test_stream.py --To pubsub --From pubsub --receiver_conf config/pubsub/receiver.json --sender_conf config/pubsub/sender.json
+
+# Example application
 $ python app.py
 
-# Run app inside a container
-$ docker build -t fashion-app .
-$ docker run --rm --network host --name fashion-app fashion-app
+# Run app inside a container (PubSub might not work)
+$ docker build -t nhabbash/stream-app .
+$ docker run --rm --network host --name stream-app nhabbash/stream-app
 ```

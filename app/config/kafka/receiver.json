@@ -1,0 +1,8 @@
+{
+    "bootstrap.servers": "localhost:9092",
+    "group.id": "None",
+    "default.topic.config": {"auto.offset.reset": "largest"},
+    "enable.auto.commit": false,
+    "topic.metadata.refresh.interval.ms": -1,
+    "enable.partition.eof": true
+}
