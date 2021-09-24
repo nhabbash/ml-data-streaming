@@ -64,7 +64,7 @@ trainer.fit(model, dm)
 trainer.test(ckpt_path="best")
 ```
 ## Logging
-Logging is provided by [Weights and Biases](https://wandb.ai/). You can check the current dashboard for this project [here](https://wandb.ai/dodicin/mlops-project).
+Logging is provided by [Weights and Biases](https://wandb.ai/). You can check the current dashboard for this project here.
 
 ## Utilities
 * Jupyter Notebook for interactive testing under [`testing.ipynb`](testing.ipynb)
