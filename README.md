@@ -12,8 +12,8 @@ The system is composed of four components:
 Each component has instructions on how to test it individually.
 ## Installation
 ```sh
-$ git clone https://github.com/nhabbash/mlops-project
-$ cd mlops-project
+$ git clone https://github.com/nhabbash/ml-data-streaming
+$ cd ml-data-streaming
 ```
 
 ## Notes
